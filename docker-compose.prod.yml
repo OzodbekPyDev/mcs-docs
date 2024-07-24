@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16.2-alpine
+    container_name: postgres-docs
+    env_file:
+      - ./.env
+    ports:
+     - 5435:5432
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 1m30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - docs_network
+
+  docs_kiut:
+    build: .
+    ports:
+      - 5000:5000
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    healthcheck:
+      test: [ "CMD", "curl", "http://0.0.0.0:5000/api/v1/health/"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    networks:
+      - docs_network
+
+networks:
+  docs_network:
